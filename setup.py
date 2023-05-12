@@ -40,13 +40,17 @@ class CMakeBuild(build_ext):
         cfg = 'Debug' if self.debug else 'Release'
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
-        subprocess.check_call([
-            'cmake', ext.sourcedir,
-            '-DCMAKE_BUILD_TYPE=' + cfg,
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-            '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DDISABLE_WERROR=1',
-        ], cwd=self.build_temp)
+        subprocess.check_call(
+            [
+                'cmake',
+                ext.sourcedir,
+                f'-DCMAKE_BUILD_TYPE={cfg}',
+                f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}',
+                f'-DPYTHON_EXECUTABLE={sys.executable}',
+                '-DDISABLE_WERROR=1',
+            ],
+            cwd=self.build_temp,
+        )
         subprocess.check_call([
             'cmake', '--build', '.',
             '--config', cfg,

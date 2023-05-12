@@ -193,15 +193,13 @@ class ListIter:
         tail_off = self.tail_offset()
         if self.i >= tail_off:
             return (self.leaf(self.v['tail']), tail_off, self.size)
-        else:
-            subs = self.visit_maybe_relaxed_sub(self.v['root'], self.v['shift'], tail_off, self.i)
-            first = self.i - subs[1]
-            end = first + subs[2]
-            return (subs[0], first, end)
+        subs = self.visit_maybe_relaxed_sub(self.v['root'], self.v['shift'], tail_off, self.i)
+        first = self.i - subs[1]
+        end = first + subs[2]
+        return (subs[0], first, end)
 
     def tail_offset(self):
-        r = self.relaxed(self.v['root'])
-        if r:
+        if r := self.relaxed(self.v['root']):
             return r.dereference()['d']['sizes'][r.dereference()['d']['count'] - 1]
         elif self.size:
             return (self.size - 1) & ~self.leaf_mask()
@@ -219,8 +217,7 @@ class ListIter:
             self.node_ptr_ptr)
 
     def visit_maybe_relaxed_sub(self, node, shift, size, idx):
-        relaxed = self.relaxed(node)
-        if relaxed:
+        if relaxed := self.relaxed(node):
             return Relaxed(node, shift, relaxed, self).towards(idx)
         else:
             return RegularSub(node, shift, size, self).towards(idx)
@@ -261,8 +258,7 @@ class ChampIter:
         self.count = 0
         v = val['impl_']['root']
         self.node_ptr_ptr = v.type.pointer()
-        m = self.datamap(v)
-        if m:
+        if m := self.datamap(v):
             self.cur = self.values(v)
             self.end = self.values(v) + popcount(m)
         else:
@@ -277,7 +273,7 @@ class ChampIter:
         return self
 
     def __next__(self):
-        if self.cur == None:
+        if self.cur is None:
             raise StopIteration
         result = self.cur.dereference()
         self.cur += 1
@@ -303,8 +299,7 @@ class ChampIter:
                 self.path.append(self.children(parent))
                 child = self.path[self.depth]
                 if self.depth < self.MAX_DEPTH:
-                    m = self.datamap(child)
-                    if m:
+                    if m := self.datamap(child):
                         self.cur = self.values(child)
                         self.end = self.cur + popcount(m)
                 else:
@@ -322,8 +317,7 @@ class ChampIter:
                 self.path[self.depth] = next_
                 child = self.path[self.depth].dereference()
                 if self.depth < self.MAX_DEPTH:
-                    m = self.datamap(child)
-                    if m:
+                    if m := self.datamap(child):
                         self.cur = self.values(child)
                         self.end = self.cur + popcount(m)
                 else:
@@ -358,8 +352,9 @@ class ChampIter:
 
 class MapIter(ChampIter):
     def __init__(self, val):
-        self.T_ptr = gdb.lookup_type("std::pair<" + val.type.template_argument(0).name + ", " +
-                                     val.type.template_argument(1).name + ">").pointer()
+        self.T_ptr = gdb.lookup_type(
+            f"std::pair<{val.type.template_argument(0).name}, {val.type.template_argument(1).name}>"
+        ).pointer()
         ChampIter.__init__(self, val)
         self.pair = None
 
@@ -392,7 +387,7 @@ class ArrayPrinter:
         self.val = val
 
     def to_string(self):
-        return 'immer::array with %s' % num_elements(self.val['impl_']['size'])
+        return f"immer::array with {num_elements(self.val['impl_']['size'])}"
 
     def children(self):
         return ArrayIter(self.val)
@@ -408,7 +403,7 @@ class MapPrinter:
         self.val = val
 
     def to_string(self):
-        return 'immer::map with %s' % num_elements(self.val['impl_']['size'])
+        return f"immer::map with {num_elements(self.val['impl_']['size'])}"
 
     def children(self):
         return MapIter(self.val)
@@ -424,7 +419,7 @@ class SetPrinter:
         self.val = val
 
     def to_string(self):
-        return 'immer::set with %s' % num_elements(self.val['impl_']['size'])
+        return f"immer::set with {num_elements(self.val['impl_']['size'])}"
 
     def children(self):
         return SetIter(self.val)
@@ -437,7 +432,7 @@ class TablePrinter:
         self.val = val
 
     def to_string(self):
-        return 'immer::table with %s' % num_elements(self.val['impl_']['size'])
+        return f"immer::table with {num_elements(self.val['impl_']['size'])}"
 
     def children(self):
         return SetIter(self.val)
@@ -469,7 +464,7 @@ def immer_lookup_function(val):
     if not match:
         return None
 
-    basename = match.group(1)
+    basename = match[1]
     if basename == "immer::array":
         return ArrayPrinter(val)
     elif basename == "immer::map":
